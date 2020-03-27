@@ -21,6 +21,8 @@ import platform
 import sys
 
 # quick version check
+from asset_loader import TextureException
+
 if sys.version_info[0] == 2 or (sys.version_info[0] == 3 and sys.version_info[1] < 4):
     print("Sorry, the Overviewer requires at least Python 3.4 to run.")
     sys.exit(1)
@@ -658,7 +660,7 @@ if __name__ == "__main__":
     try:
         ret = main()
         util.nice_exit(ret)
-    except textures.TextureException as e:
+    except TextureException as e:
         # this isn't a "bug", so don't print scary traceback
         logging.error(str(e))
 

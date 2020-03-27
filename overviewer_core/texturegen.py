@@ -1,14 +1,10 @@
-import os
-import json
-import re
-import zipfile
 from collections import defaultdict
 from functools import lru_cache
-from io import BytesIO
-from pprint import pprint
 
 from PIL import Image
 import logging
+
+from asset_loader import AssetLoaderMixin
 
 START_BLOCK_ID = 20000
 # BLOCK_LIST = [
@@ -300,7 +296,9 @@ logger = logging.getLogger(__name__)
 ################################################################
 # Main Code for Block Rendering
 ################################################################
-class BlockRenderer(object):
+
+
+class BlockRenderer(AssetLoaderMixin, object):
     BLOCKSTATES_DIR = "assets/minecraft/blockstates"
     MODELS_DIR = "assets/minecraft/models"
     TEXTURES_DIR = "assets/minecraft/textures"
@@ -317,104 +315,6 @@ class BlockRenderer(object):
     ################################################################
     # Loading files
     ################################################################
-    def load_json(self, name: str, directory: str) -> dict:
-        # fp = self.textures.find_file("%s/%s.json" % (directory, name), "r")
-        logger.debug(directory)
-        logger.debug(name)
-        # with...
-        with self.load_file(directory, name, ".json") as f:
-            return json.load(f)
-        # finally:
-        #     fp.close()
-        # return data
-
-    def load_blockstates(self, name: str) -> dict:
-        return self.load_json(name, self.BLOCKSTATES_DIR)
-
-    def load_file(self, path:str, name:str, ext:str):
-        if ":" in name:
-            return self.textures.find_file("{0}/{1}{2}".format(path,name.split(":")[1],ext), verbose=False)
-
-        else:
-            return self.textures.find_file("{0}/{1}{2}".format(path,name,ext), verbose=False)
-
-
-    def walk_assets(self, path:str, filter:r"", ignore_unsupported_blocks=True):
-        """Walk Assets directory in order of precedence in order to find all blocks"""
-        #todo: test
-        _ret = set()
-        if self.textures.find_file_local_path:
-            if (self.textures.find_file_local_path not in self.textures.jars
-                    and os.path.isfile(self.textures.find_file_local_path)):
-                # Must be a resource pack. Look for the requested file within
-                # it.
-
-                pack = zipfile.ZipFile(self.textures.find_file_local_path)
-                # pack.getinfo() will raise KeyError if the file is
-                # not found.
-                # pprint(pack.infolist())
-                for i in pack.infolist():
-                    if path in i.filename:
-
-                        # pack.getinfo(path)
-                        # logging.debug("Found %s in '%s'", path,
-                        #                          self.textures.find_file_local_path)
-                        self.textures.jars[self.textures.find_file_local_path] = pack
-                        # ok cool now move this to the start so we pick it first
-                        self.textures.jars.move_to_end(self.textures.find_file_local_path, last=False)
-                    # return pack.open(path)
-
-            elif os.path.isdir(self.textures.find_file_local_path):
-                full_path = os.path.join(self.textures.find_file_local_path, path)
-
-                logger.debug(path)
-                for root, dir, files in os.walk(self.textures.find_file_local_path+"/"+path):
-                    logger.debug(files)
-                    for fn in files:
-                        # logger.debug(os.path.join(root,files))
-                        # logger.debug(filter)
-                        # logger.debug(fn)
-                        if re.search(filter,str(fn)):
-                            _ret.add(os.path.splitext(fn)[0])
-
-                logger.debug(_ret)
-                return _ret
-                    # return open(full_path, mode)
-
-        if len(self.textures.jars) > 0:
-            # optimize: most likely can be sped up significantly
-            for jarpath in self.textures.jars:
-                try:
-                    jar = self.textures.jars[jarpath]
-                    infolist = jar.infolist()
-                    for i in infolist:
-                        # logging.info(i)
-                        if bool(re.search(filter, i.filename)) & (path in i.filename):
-                            _ret.add(os.path.splitext(os.path.split(i.filename)[1])[0])
-                    logging.debug("Found (cached) %s in '%s'", path,
-                                             jarpath)
-                    # return jar.open(filename)
-                except (KeyError, IOError) as e:
-                    pass
-        # pprint(_ret)
-        return _ret
-
-
-
-
-            
-
-
-
-    def load_model(self, name: str) -> dict:
-        logger.debug(name)
-        return self.load_json(name, self.MODELS_DIR)
-        # if ":" in name:
-        #     return self.load_json(name[name.find(":")+1:], self.MODELS_DIR)
-        # else:
-        #     return self.load_json(name, self.MODELS_DIR)
-
-
 
     ################################################################
     # Model file parsing
