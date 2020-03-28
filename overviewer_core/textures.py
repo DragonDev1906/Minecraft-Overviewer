@@ -249,7 +249,7 @@ class Textures(object):
         if hasattr(self, "lightcolor"):
             return self.lightcolor
         try:
-            lightcolor = list(self.assetLoader.load_image("light_normal.png").getdata())
+            lightcolor = list(self.assetLoader.load_img("light_normal").getdata())
         except Exception:
             logging.warning("Light color image could not be found.")
             lightcolor = None
@@ -259,22 +259,22 @@ class Textures(object):
     def load_grass_color(self):
         """Helper function to load the grass color texture."""
         if not hasattr(self, "grasscolor"):
-            self.grasscolor = list(self.assetLoader.load_image(
-                "assets/minecraft/textures/colormap/grass.png").getdata())
+            self.grasscolor = list(self.assetLoader.load_img(
+                "assets/minecraft/textures/colormap/grass").getdata())
         return self.grasscolor
 
     def load_foliage_color(self):
         """Helper function to load the foliage color texture."""
         if not hasattr(self, "foliagecolor"):
-            self.foliagecolor = list(self.assetLoader.load_image(
-                "assets/minecraft/textures/colormap/foliage.png").getdata())
+            self.foliagecolor = list(self.assetLoader.load_img(
+                "assets/minecraft/textures/colormap/foliage").getdata())
         return self.foliagecolor
 
     #I guess "watercolor" is wrong. But I can't correct as my texture pack don't define water color.
     def load_water_color(self):
         """Helper function to load the water color texture."""
         if not hasattr(self, "watercolor"):
-            self.watercolor = list(self.assetLoader.load_image("watercolor.png").getdata())
+            self.watercolor = list(self.assetLoader.load_img("watercolor").getdata())
         return self.watercolor
 
     def _split_terrain(self, terrain):
@@ -1140,7 +1140,8 @@ def bed(self, blockid, data):
         elif (data & 0b0011) == 2: data = data & 0b1100 | 1
         elif (data & 0b0011) == 3: data = data & 0b1100 | 2
     
-    bed_texture = self.assetLoader.load_image("assets/minecraft/textures/entity/bed/red.png") # FIXME: do tile entity colours
+    bed_texture = self.assetLoader.load_img("assets/minecraft/textures/entity/bed/red.png") # FIXME: do tile entity
+    # colours
     increment = 8
     left_face = None
     right_face = None
@@ -2044,12 +2045,12 @@ def chests(self, blockid, data):
         # ancilData = 2,3,4,5 are used for this blockids
     
     if data & 24 == 0:
-        if blockid == 130: t = self.assetLoader.load_image("assets/minecraft/textures/entity/chest/ender.png")
+        if blockid == 130: t = self.assetLoader.load_img("assets/minecraft/textures/entity/chest/ender.png")
         else:
             try:
-                t = self.assetLoader.load_image("assets/minecraft/textures/entity/chest/normal.png")
+                t = self.assetLoader.load_img("assets/minecraft/textures/entity/chest/normal.png")
             except (AssetLoaderException, IOError):
-                t = self.assetLoader.load_image("assets/minecraft/textures/entity/chest/chest.png")
+                t = self.assetLoader.load_img("assets/minecraft/textures/entity/chest/chest.png")
 
         t = ImageOps.flip(t) # for some reason the 1.15 images are upside down
 
@@ -2106,8 +2107,8 @@ def chests(self, blockid, data):
         # large chest
         # the textures is no longer in terrain.png, get it from 
         # item/chest.png and get all the needed stuff
-        t_left = self.assetLoader.load_image("assets/minecraft/textures/entity/chest/normal_left.png")
-        t_right = self.assetLoader.load_image("assets/minecraft/textures/entity/chest/normal_right.png")
+        t_left = self.assetLoader.load_img("assets/minecraft/textures/entity/chest/normal_left.png")
+        t_right = self.assetLoader.load_img("assets/minecraft/textures/entity/chest/normal_right.png")
         # for some reason the 1.15 images are upside down
         t_left = ImageOps.flip(t_left)
         t_right = ImageOps.flip(t_right)
@@ -5039,15 +5040,15 @@ block(blockid=11414, top_image="assets/minecraft/textures/block/scaffolding_top.
 @material(blockid=[11501, 11502], data=list(range(8)), solid=True)
 def beehivenest(self, blockid, data):    
     if blockid == 11501: #beehive
-        t_top = self.assetLoader.load_image("assets/minecraft/textures/block/beehive_end.png")
-        t_side = self.assetLoader.load_image("assets/minecraft/textures/block/beehive_side.png")
-        t_front = self.assetLoader.load_image("assets/minecraft/textures/block/beehive_front.png")
-        t_front_honey = self.assetLoader.load_image("assets/minecraft/textures/block/beehive_front_honey.png")
+        t_top = self.assetLoader.load_img("assets/minecraft/textures/block/beehive_end.png")
+        t_side = self.assetLoader.load_img("assets/minecraft/textures/block/beehive_side.png")
+        t_front = self.assetLoader.load_img("assets/minecraft/textures/block/beehive_front.png")
+        t_front_honey = self.assetLoader.load_img("assets/minecraft/textures/block/beehive_front_honey.png")
     elif blockid == 11502: #bee_nest
-        t_top = self.assetLoader.load_image("assets/minecraft/textures/block/bee_nest_top.png")
-        t_side = self.assetLoader.load_image("assets/minecraft/textures/block/bee_nest_side.png")
-        t_front = self.assetLoader.load_image("assets/minecraft/textures/block/bee_nest_front.png")
-        t_front_honey = self.assetLoader.load_image("assets/minecraft/textures/block/bee_nest_front_honey.png")
+        t_top = self.assetLoader.load_img("assets/minecraft/textures/block/bee_nest_top.png")
+        t_side = self.assetLoader.load_img("assets/minecraft/textures/block/bee_nest_side.png")
+        t_front = self.assetLoader.load_img("assets/minecraft/textures/block/bee_nest_front.png")
+        t_front_honey = self.assetLoader.load_img("assets/minecraft/textures/block/bee_nest_front_honey.png")
 
     if data >= 4:
         front = t_front_honey

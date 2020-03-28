@@ -9,7 +9,7 @@ from collections import OrderedDict
 from io import BytesIO
 
 import PIL.Image as Image
-
+import typing
 
 from overviewer_core import util
 
@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 class AssetLoaderException(Exception):
     "To be thrown when a texture is not found."
     pass
+
+
 class AssetLoader(object):
     """Object manages all tasks related to loading files and config data from texturepacks and jar files
     """
@@ -29,12 +31,22 @@ class AssetLoader(object):
         self.texturepath = texturepath
         self.jars = OrderedDict()
 
-    def load_file(textures, path: str, name: str, ext: str):
+    def load_file(self, path: str, name: str, ext: str = ""):
+        logger.debug("Path: {0}".format(path))
+        logger.debug("Name: {0} ".format(name))
+        logger.debug("Ext: {0} ".format(ext))
         if ":" in name:
-            return textures.find_file("{0}/{1}{2}".format(path, name.split(":")[1], ext), verbose=False)
-
+            name = name.split(":")[1]
+        if not os.path.splitext(name)[1]: #doesnt have extension
+            name = "{0}{1}".format(name, ext)
+        if  name.count("/") >1: #name probably already contains a fully qualified path
+            fp = "{1}".format(path, name)
         else:
-            return textures.find_file("{0}/{1}{2}".format(path, name, ext), verbose=False)
+            fp = "{0}/{1}".format(path, name)
+
+        logger.debug("Complete path: {0}".format(fp))
+        return self.find_file(fp, verbose=True)
+
 
     def walk_assets(self, path: str, filter: r"", ignore_unsupported_blocks=True):
         """Walk Assets directory in order of precedence in order to find all blocks"""
@@ -96,31 +108,43 @@ class AssetLoader(object):
         # pprint(_ret)
         return _ret
 
+    # @lru_cache
+    # def load_image(self, filename)->Image:
+    #     """Returns an image object"""
+    #
+    #     # try:
+    #     #     img = self.texture_cache[filename]
+    #     #     if isinstance(img, Exception):  # Did we cache an exception?
+    #     #         raise img                   # Okay then, raise it.
+    #     #     return img
+    #     # except KeyError:
+    #     #     pass
+    #
+    #     try:
+    #         fileobj = self.find_file(filename)
+    #     except (AssetLoaderException, IOError) as e:
+    #         # We cache when our good friend find_file can't find
+    #         # a texture, so that we do not repeatedly search for it.
+    #         # self.texture_cache[filename] = e
+    #         raise e
+    #     buffer = BytesIO(fileobj.read())
+    #     img = Image.open(buffer).convert("RGBA")
+    #     # self.texture_cache[filename] = img
+    #     return img
+
     @lru_cache
-    def load_image(self, filename):
-        """Returns an image object"""
+    def load_img(self, texture_name, ext=".png")->Image:
 
-        # try:
-        #     img = self.texture_cache[filename]
-        #     if isinstance(img, Exception):  # Did we cache an exception?
-        #         raise img                   # Okay then, raise it.
-        #     return img
-        # except KeyError:
-        #     pass
+        with self.load_file( self.TEXTURES_DIR, texture_name, ext) as f:
+            buffer =  Image.open(f)
+            # buffer = BytesIO(fileobj.read())
+            h, w =buffer.size #get images size
+            if h != w:# check image is square if not (for example due to animated texture) crop shorter side
+                buffer = buffer.crop((0,0,min(h,w),min(h,w)))
+            texture = buffer.convert("RGBA")
+            return texture
 
-        try:
-            fileobj = self.find_file(filename)
-        except (AssetLoaderException, IOError) as e:
-            # We cache when our good friend find_file can't find
-            # a texture, so that we do not repeatedly search for it.
-            # self.texture_cache[filename] = e
-            raise e
-        buffer = BytesIO(fileobj.read())
-        img = Image.open(buffer).convert("RGBA")
-        # self.texture_cache[filename] = img
-        return img
-
-    def find_file(self, filename, mode="rb", verbose=False):
+    def find_file(self, filename, mode="rb", verbose=False)->typing.IO:
         """Searches for the given file and returns an open handle to it.
         This searches the following locations in this order:
 
@@ -189,7 +213,7 @@ class AssetLoader(object):
 
         # Look in the location of the overviewer executable for the given path
         programdir = util.get_program_path()
-        path = os.path.join(programdir, filename)
+        path = os.path.join(programdir,"data", filename)
         if os.path.isfile(path):
             if verbose: logging.info("Found %s in '%s'", filename, path)
             return open(path, mode)
@@ -277,7 +301,9 @@ class AssetLoader(object):
         # believe that's not true, but we still have a few files distributed
         # with overviewer.
         if verbose: logging.info("Looking for texture in overviewer_core/data/textures")
-        path = os.path.join(programdir, "overviewer_core", "data", "textures", filename)
+
+        logging.debug(filename)
+        path = os.path.join(programdir, "overviewer_core", "data", filename)
         if os.path.isfile(path):
             if verbose: logging.info("Found %s in '%s'", filename, path)
             return open(path, mode)
@@ -291,11 +317,11 @@ class AssetLoader(object):
         raise AssetLoaderException("Could not find the textures while searching for '{0}'. Try specifying the 'texturepath' option in your config file.\nSet it to the path to a Minecraft Resource pack.\nAlternately, install the Minecraft client (which includes textures)\nAlso see <http://docs.overviewer.org/en/latest/running/#installing-the-textures>\n(Remember, this version of Overviewer requires a 1.15-compatible resource pack)\n(Also note that I won't automatically use snapshots; you'll have to use the texturepath option to use a snapshot jar)".format(filename))
 
     @lru_cache
-    def load_image_texture(self, filename):
+    def load_image_texture(self, filename)->Image:
         # Textures may be animated or in a different resolution than 16x16.
         # This method will always return a 16x16 image
 
-        img = self.load_image(filename)
+        img = self.load_img(filename)
 
         w,h = img.size
         if w != h:
@@ -306,16 +332,6 @@ class AssetLoader(object):
         # self.texture_cache[filename] = img
         return img
 
-    @lru_cache
-    def load_img(self, texture_name):
-        with self.load_file( self.TEXTURES_DIR, texture_name, ".png") as f:
-            buffer =  Image.open(f)
-            # buffer = BytesIO(fileobj.read())
-            h, w =buffer.size #get images size
-            if h != w:# check image is square if not (for example due to animated texture) crop shorter side
-                buffer = buffer.crop((0,0,min(h,w),min(h,w)))
-            texture = buffer.convert("RGBA")
-            return texture
 
     @lru_cache
     def load_and_combine_model(self, name):
@@ -333,6 +349,7 @@ class AssetLoader(object):
             "textures": textures_field,
             "elements": elements_field,
         }
+
     @lru_cache
     def load_json(self, name: str, directory: str) -> dict:
         # fp = self.textures.find_file("%s/%s.json" % (directory, name), "r")
