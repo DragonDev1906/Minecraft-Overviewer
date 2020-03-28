@@ -124,7 +124,7 @@ class BlockRenderer(object):
         self.assetLoader = AssetLoader(textures.find_file_local_path)
         self.start_block_id = start_block_id
         if block_list is None:
-            self.block_list = self.assetLoader.walk_assets(self.assetLoader.BLOCKSTATES_DIR, r".json")
+            self.block_list = self.assetLoader.get_blocklist()
         else: self.block_list = block_list
 
         # Settings for rendering
@@ -372,7 +372,7 @@ class BlockRenderer(object):
         logger.debug("Searching for blockstates in " + self.assetLoader.BLOCKSTATES_DIR)
 
        
-        return self.iter_blocks(sorted(self.assetLoader.walk_assets(self.assetLoader.BLOCKSTATES_DIR, r".json")))
+        return self.iter_blocks(sorted(self.assetLoader.get_blocklist()))
 
     def get_max_size(self) -> (int, int):
         blockid_count = len(list(self.block_list))
@@ -388,20 +388,31 @@ class BlockRenderer(object):
 
     # @lru_cache()
     def get_all_textures(self)->list:
-        self._tex_names= []
-        self._tex_imgs = []
+        """Wrapper to return all block texture currently, may be expanded to include items later"""
+        return self.get_all_block_textures()
 
-        _lst= list(sorted(self.assetLoader.walk_assets(self.assetLoader.TEXTURES_DIR+"/block", r".png")))
-        # pprint(_lst)
-        for i in _lst:
-            print(i)
-            self._tex_imgs.append(self.assetLoader.load_img("block/"+ i))
-            self._tex_names.append(i)
+    def get_all_block_textures(self):
+        return self._block_textures
+
+    @property
+    def _block_textures(self)->list:
+        if hasattr(self,"_tex_imgs"):
+            return self._tex_imgs
+        else:
+            self._tex_names= []
+            self._tex_imgs = []
+
+            _lst= list(sorted(self.assetLoader.walk_assets(self.assetLoader.TEXTURES_DIR, r"/block/.*\.png$")))
+            pprint(_lst)
+            for i in _lst:
+                print(i)
+                self._tex_imgs.append(self.assetLoader.load_img(i))
+                self._tex_names.append(os.path.splitext(i)[0])
 
 
-        return self._tex_imgs
-        pass
-
+            return self._tex_imgs
 
     def get_texture_index(self, name:str)-> int:
+        if not hasattr(self,"_tex_imgs"):
+            self.get_all_block_textures()
         return self._tex_names.index(name)

@@ -7,6 +7,7 @@ import sys
 import zipfile
 from collections import OrderedDict
 from io import BytesIO
+from pprint import pprint
 
 import PIL.Image as Image
 import typing
@@ -44,9 +45,17 @@ class AssetLoader(object):
         else:
             fp = "{0}/{1}".format(path, name)
 
-        print("Complete path: {0}".format(fp))
+        logger.debug("Complete path: {0}".format(fp))
         return self.find_file(fp, verbose=True)
 
+
+    def get_blocklist(self)->list:
+        """Returns a list of block names (block/name)"""
+
+        _ret =  [os.path.splitext(i)[0][1:] for i in self.walk_assets(self.BLOCKSTATES_DIR, r".json")]
+        pprint(_ret)
+        return _ret
+        pass
 
     def walk_assets(self, path: str, filter: r"", ignore_unsupported_blocks=True):
         """Walk Assets directory in order of precedence in order to find all blocks"""
@@ -85,7 +94,7 @@ class AssetLoader(object):
                         # logger.debug(filter)
                         # logger.debug(fn)
                         if re.search(filter,str(fn)):
-                            _ret.add(os.path.splitext(fn)[0])
+                            _ret.add("/".join([os.path.split(os.path.dirname(fn))[1],os.path.split(fn)[1]]))
 
                 logger.debug(_ret)
                 return _ret
@@ -100,7 +109,7 @@ class AssetLoader(object):
                     for i in infolist:
                         # logging.info(i)
                         if bool(re.search(filter, i.filename)) & (path in i.filename):
-                            _ret.add(os.path.splitext(os.path.split(i.filename)[1])[0])
+                            _ret.add("/".join([os.path.split(os.path.dirname(i.filename))[1],os.path.split(i.filename)[1]]))
                     logging.debug("Found (cached) %s in '%s'", path,
                                              jarpath)
                     # return jar.open(filename)
