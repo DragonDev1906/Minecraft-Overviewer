@@ -17,6 +17,7 @@ from overviewer_core import util
 from functools import lru_cache
 logger = logging.getLogger(__name__)
 
+
 class AssetLoaderException(Exception):
     "To be thrown when a texture is not found."
     pass
@@ -28,6 +29,7 @@ class AssetLoader(object):
     BLOCKSTATES_DIR = "assets/minecraft/blockstates"
     MODELS_DIR = "assets/minecraft/models"
     TEXTURES_DIR = "assets/minecraft/textures"
+
     def __init__(self, texturepath):
         self.texturepath = texturepath
         self.jars = OrderedDict()
@@ -94,7 +96,7 @@ class AssetLoader(object):
                         # logger.debug(filter)
                         # logger.debug(fn)
                         if re.search(filter,str(fn)):
-                            _ret.add("/".join([os.path.split(os.path.dirname(fn))[1],os.path.split(fn)[1]]))
+                            _ret.add(os.path.splitext(fn)[0])
 
                 logger.debug(_ret)
                 return _ret
@@ -109,7 +111,7 @@ class AssetLoader(object):
                     for i in infolist:
                         # logging.info(i)
                         if bool(re.search(filter, i.filename)) & (path in i.filename):
-                            _ret.add("/".join([os.path.split(os.path.dirname(i.filename))[1],os.path.split(i.filename)[1]]))
+                            _ret.add(os.path.splitext(os.path.split(i.filename)[1])[0])
                     logging.debug("Found (cached) %s in '%s'", path,
                                              jarpath)
                     # return jar.open(filename)
@@ -118,29 +120,6 @@ class AssetLoader(object):
         # pprint(_ret)
         return _ret
 
-    # @lru_cache
-    # def load_image(self, filename)->Image:
-    #     """Returns an image object"""
-    #
-    #     # try:
-    #     #     img = self.texture_cache[filename]
-    #     #     if isinstance(img, Exception):  # Did we cache an exception?
-    #     #         raise img                   # Okay then, raise it.
-    #     #     return img
-    #     # except KeyError:
-    #     #     pass
-    #
-    #     try:
-    #         fileobj = self.find_file(filename)
-    #     except (AssetLoaderException, IOError) as e:
-    #         # We cache when our good friend find_file can't find
-    #         # a texture, so that we do not repeatedly search for it.
-    #         # self.texture_cache[filename] = e
-    #         raise e
-    #     buffer = BytesIO(fileobj.read())
-    #     img = Image.open(buffer).convert("RGBA")
-    #     # self.texture_cache[filename] = img
-    #     return img
 
     @lru_cache()
     def load_img(self, texture_name, ext=".png")->Image:
@@ -327,7 +306,7 @@ class AssetLoader(object):
         raise AssetLoaderException("Could not find the textures while searching for '{0}'. Try specifying the 'texturepath' option in your config file.\nSet it to the path to a Minecraft Resource pack.\nAlternately, install the Minecraft client (which includes textures)\nAlso see <http://docs.overviewer.org/en/latest/running/#installing-the-textures>\n(Remember, this version of Overviewer requires a 1.15-compatible resource pack)\n(Also note that I won't automatically use snapshots; you'll have to use the texturepath option to use a snapshot jar)".format(filename))
 
     @lru_cache()
-    def load_image_texture(self, filename)->Image:
+    def load_image_texture(self, filename):
         # Textures may be animated or in a different resolution than 16x16.
         # This method will always return a 16x16 image
 
@@ -342,6 +321,16 @@ class AssetLoader(object):
         # self.texture_cache[filename] = img
         return img
 
+    @lru_cache
+    def load_img(self, texture_name):
+        with self.load_file( self.TEXTURES_DIR, texture_name, ".png") as f:
+            buffer =  Image.open(f)
+            # buffer = BytesIO(fileobj.read())
+            h, w =buffer.size #get images size
+            if h != w:# check image is square if not (for example due to animated texture) crop shorter side
+                buffer = buffer.crop((0,0,min(h,w),min(h,w)))
+            texture = buffer.convert("RGBA")
+            return texture
 
     @lru_cache()
     def load_and_combine_model(self, name):

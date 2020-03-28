@@ -1,5 +1,6 @@
 import json
 import os
+import typing
 from collections import defaultdict
 from functools import lru_cache
 from pprint import pprint
@@ -95,13 +96,41 @@ def load_obj(ctx, render_program, path):
         for value in value_list     # Combine all small arrays into a single large one
     ], dtype="f4")
 
+    # This array is used to ensure faces always have the same id in later code.
+    # This should only need to be changed if cube.obj changes
+    # The index is the normal-index from cube.obj
+    # The value is the index used later for this face
+    face_mapping = [
+        4,  # Top
+        2,  # South
+        3,  # West
+        5,  # Bottom
+        1,  # East
+        0   # North
+    ]
+
+    print(raw_faces)
+    face_indicies = np.array([
+        face_mapping[int(vertex[2])-1]
+        for face in raw_faces
+        for vertex in face
+    ], dtype="u4")
+
     # By reshaping the array all values can be read more easily
     # print(data.reshape((data.size // 8, 8)))
+    # print(face_indicies)
 
     # Create a buffer containing the data
     cube_vbo = ctx.buffer(data.tobytes())
+    cube_vbo_int = ctx.buffer(face_indicies.tobytes())
     # Create a VertexArray bound to the buffer and the render_program
-    return ctx.simple_vertex_array(render_program, cube_vbo, "in_vert", "in_normal", "in_texcoord_0")
+    return ctx.vertex_array(
+        render_program,
+        [
+            (cube_vbo, "3f4 3f4 2f4", "in_vert", "in_normal", "in_texcoord_0"),
+            (cube_vbo_int, "u4", "in_faceid")
+        ]
+    )
 
 
 ################################################################
@@ -117,12 +146,13 @@ class BlockRenderer(object):
     def __init__(self, textures, *, block_list=None, start_block_id: int=1, resolution: int=24,
                  vertex_shader: str="overviewer_core/rendering/default.vert",
                  fragment_shader: str="overviewer_core/rendering/default.frag",
-                 projection_matrix=None):
+                 projection_matrix=None, mc_texture_size=16):
         # Not direclty related to rendering
 
         self.textures = textures
         self.assetLoader = AssetLoader(textures.find_file_local_path)
         self.start_block_id = start_block_id
+        self.mc_texture_size = mc_texture_size
         if block_list is None:
             self.block_list = self.assetLoader.get_blocklist()
         else: self.block_list = block_list
@@ -143,6 +173,8 @@ class BlockRenderer(object):
 
         # Setup for rendering
         try:
+            # TODO: EGL seems to need some commands first (currently manually executed)
+            #  They probably must only be executed once per shell?
             ctx = mgl.create_context(
                 standalone=True,
                 backend='egl',
@@ -169,12 +201,18 @@ class BlockRenderer(object):
         if projection_matrix is None:
             projection_matrix = self.calculate_projection_matrix()
 
-        # Load and use a texture
-        # TODO: Replace this by a Texturemap and adjust the shaders
-        img = self.assetLoader.load_img("block/oak_planks")
-        texture = ctx.texture(img.size, 4, img.tobytes())
-        texture.filter = (mgl.NEAREST, mgl.NEAREST)     # Use the nearest pixel instead of lineary interpolating
-        texture.use()
+        # Load all textures into a single TextureArray
+        # All textures have to be of size mc_texture_size*mc_texture_size
+        texture_list = self.get_all_textures()
+        texture_array = ctx.texture_array(
+            size=(self.mc_texture_size, self.mc_texture_size, len(texture_list)),
+            components=4,
+            data=b''.join([
+                img.tobytes() for img in texture_list
+            ])
+        )
+        texture_array.filter = mgl.NEAREST, mgl.NEAREST
+        texture_array.use()
 
         # Set the "uniform" values the shaders require
         render_program["Mvp"].write(projection_matrix.astype('f4').tobytes())
@@ -227,7 +265,7 @@ class BlockRenderer(object):
         return np.matmul(view_matrix, projection_matrix)
 
     ################################################################
-    # Loading files
+    # Finding and indexing textures
     ################################################################
 
 
@@ -245,21 +283,35 @@ class BlockRenderer(object):
     ################################################################
     # Render methods
     ################################################################
-    def render_vertex_array(self, vertex_array: mgl.VertexArray, pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1)):
+    def render_vertex_array(self, vertex_array: mgl.VertexArray, face_texture_ids: list, face_uvs: list, *,
+                            pos=(0, 0, 0), model_rot=(0, 0, 0), scale=(1, 1, 1)):
         # Write uniform values and render the vertex_array
+        vertex_array.program["face_texture_ids"].write(np.array(face_texture_ids, dtype="u4").tobytes())
+        vertex_array.program["face_uvs"].write(np.array(face_uvs, dtype="f4").tobytes())
+        vertex_array.program["model_rot"].write(np.array(model_rot, dtype="f4").tobytes())
         vertex_array.program["pos"].write(np.array(pos, dtype="f4"))
         vertex_array.program["scale"].write(np.array(scale, dtype="f4"))
         vertex_array.render()
 
-    def render_element(self, element, rotation_x_axis, rotation_y_axis, uvlock):
+    def render_element(self, element, texture_variables: dict, rotation_x_axis, rotation_y_axis, uvlock):
         # Convert the two cube corners into postion, and scale
         pos = tuple((t + f) / 32 - .5 for f, t in zip(element["from"], element["to"]))
-        rot = (0, 0, 0)     # Not implemented yet
+        model_rot = (rotation_x_axis / 180 * pi, rotation_y_axis / 180 * pi)     # Not implemented yet
         scale = tuple((t - f) / 16 for f, t in zip(element["from"], element["to"]))
+        face_texture_ids = [
+            self.get_texture_index(texture_variables[element["faces"][face_name]["texture"][1:]])
+            if face_name in element["faces"]
+            else 0
+            for face_name in ["north", "east", "south", "west", "up", "down"]
+        ]
+        face_uvs = [
+            value / 16
+            for face_name in ["north", "east", "south", "west", "up", "down"]
+            for value in element["faces"].get(face_name, {}).get("uv", (0, 0, 16, 16))
+        ]
 
         # Render the cube
-        self.render_vertex_array(self.cube_model, pos, rot, scale)
-
+        self.render_vertex_array(self.cube_model, face_texture_ids, face_uvs, pos=pos, model_rot=model_rot, scale=scale)
 
     def render_model(self, data: dict, rotation_x_axis, rotation_y_axis, uvlock):
         """
@@ -297,7 +349,7 @@ class BlockRenderer(object):
         # Reason: Required for correct rendering of e.g. the grass block
         for part in data["elements"]:
             # Render a single cube
-            self.render_element(part, rotation_x_axis, rotation_y_axis, uvlock)
+            self.render_element(part, data["textures"], rotation_x_axis, rotation_y_axis, uvlock)
 
         # Read the data from the framebuffer and return it as a PIL.Image
         img = Image.frombytes("RGBA", (self.resolution, self.resolution), self.fbo.read(components=4))
