@@ -44,7 +44,7 @@ class AssetLoader(object):
         else:
             fp = "{0}/{1}".format(path, name)
 
-        logger.debug("Complete path: {0}".format(fp))
+        print("Complete path: {0}".format(fp))
         return self.find_file(fp, verbose=True)
 
 
@@ -52,6 +52,7 @@ class AssetLoader(object):
         """Walk Assets directory in order of precedence in order to find all blocks"""
         #todo: test
         _ret = set()
+        print(path)
         if self.texturepath:
             if (self.texturepath not in self.jars
                     and os.path.isfile(self.texturepath)):
@@ -132,7 +133,7 @@ class AssetLoader(object):
     #     # self.texture_cache[filename] = img
     #     return img
 
-    @lru_cache
+    @lru_cache()
     def load_img(self, texture_name, ext=".png")->Image:
 
         with self.load_file( self.TEXTURES_DIR, texture_name, ext) as f:
@@ -316,7 +317,7 @@ class AssetLoader(object):
 
         raise AssetLoaderException("Could not find the textures while searching for '{0}'. Try specifying the 'texturepath' option in your config file.\nSet it to the path to a Minecraft Resource pack.\nAlternately, install the Minecraft client (which includes textures)\nAlso see <http://docs.overviewer.org/en/latest/running/#installing-the-textures>\n(Remember, this version of Overviewer requires a 1.15-compatible resource pack)\n(Also note that I won't automatically use snapshots; you'll have to use the texturepath option to use a snapshot jar)".format(filename))
 
-    @lru_cache
+    @lru_cache()
     def load_image_texture(self, filename)->Image:
         # Textures may be animated or in a different resolution than 16x16.
         # This method will always return a 16x16 image
@@ -333,7 +334,7 @@ class AssetLoader(object):
         return img
 
 
-    @lru_cache
+    @lru_cache()
     def load_and_combine_model(self, name):
         data = self.load_model(name)
         if "parent" in data:
@@ -350,7 +351,7 @@ class AssetLoader(object):
             "elements": elements_field,
         }
 
-    @lru_cache
+    @lru_cache()
     def load_json(self, name: str, directory: str) -> dict:
         # fp = self.textures.find_file("%s/%s.json" % (directory, name), "r")
         logger.debug(directory)

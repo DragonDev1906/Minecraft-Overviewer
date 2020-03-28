@@ -2,6 +2,7 @@ import json
 import os
 from collections import defaultdict
 from functools import lru_cache
+from pprint import pprint
 
 import moderngl as mgl
 import numpy as np
@@ -385,3 +386,22 @@ class BlockRenderer(object):
                 BlockRenderer.store_nbt_as_int(block_name, nbt_condition, block_index + self.start_block_id, nbt_index)
                 yield (block_index + self.start_block_id, nbt_index), variants[0][0]
 
+    # @lru_cache()
+    def get_all_textures(self)->list:
+        self._tex_names= []
+        self._tex_imgs = []
+
+        _lst= list(sorted(self.assetLoader.walk_assets(self.assetLoader.TEXTURES_DIR+"/block", r".png")))
+        # pprint(_lst)
+        for i in _lst:
+            print(i)
+            self._tex_imgs.append(self.assetLoader.load_img("block/"+ i))
+            self._tex_names.append(i)
+
+
+        return self._tex_imgs
+        pass
+
+
+    def get_texture_index(self, name:str)-> int:
+        return self._tex_names.index(name)
