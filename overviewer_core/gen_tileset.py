@@ -7,8 +7,8 @@ from overviewer_core.textures import Textures
 A way to show multiple images at the same time (up to 100 textures)
 """
 from PIL import Image
-combine_image_width = 25
-combine_image_height = 30
+combine_image_width = 60
+combine_image_height = 80
 combine_image = Image.new('RGBA', (25 * combine_image_width, 25 * combine_image_height))
 _combine_image_current_pos = 0
 
@@ -43,7 +43,9 @@ def gen_tileset(outputdir, texturepath=None):
     #     textures_instance, block_list=block_names).get_max_size()
     #       )
     # print(list(block_renderer.iter_all_blocks()))
-    print("Size with current block:", block_renderer.get_max_size())
+    # print("Size with current block:", len(textures_instance.assetLoader.get_blocklist()) )
+    # print(textures_instance.assetLoader.get_blocklist())
+
     for (blockid, data), img in block_renderer.iter_for_generate():
         # print("hi")
         add_img(img)

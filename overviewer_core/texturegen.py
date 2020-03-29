@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 from overviewer_core.asset_loader import AssetLoader
 
 START_BLOCK_ID = 20000
-
+models_built= 0
 
 ################################################################
 # Constants and helper methods for the BlockRenderer
@@ -151,12 +151,13 @@ class BlockRenderer(object):
 
         self.textures = textures
         self.assetLoader = AssetLoader(textures.find_file_local_path)
+
         self.start_block_id = start_block_id
         self.mc_texture_size = mc_texture_size
         if block_list is None:
             self.block_list = self.assetLoader.get_blocklist()
         else: self.block_list = block_list
-        self._block_textures()
+        # self._block_textures()
         # Settings for rendering
         self.resolution = resolution
 
@@ -204,6 +205,10 @@ class BlockRenderer(object):
         # Load all textures into a single TextureArray
         # All textures have to be of size mc_texture_size*mc_texture_size
         texture_list = self.get_all_textures()
+        for tex in texture_list:
+            print(tex)
+
+        print(len(texture_list))
         texture_array = ctx.texture_array(
             size=(self.mc_texture_size, self.mc_texture_size, len(texture_list)),
             components=4,
@@ -276,9 +281,10 @@ class BlockRenderer(object):
 
 
 
-    def get_max_nbt_count(self, name: str) -> int:
-        data = self.assetLoader.load_blockstates(name)
-        return len(data.get("variants", []))
+    # def get_max_nbt_count(self, name: str) -> int:
+    #     data = self.assetLoader.load_blockstates(name)
+    #     pprint(data)
+    #     return len(data.get("variants", []))
 
     ################################################################
     # Render methods
@@ -357,12 +363,16 @@ class BlockRenderer(object):
 
     def render_blockstate_entry(self, data: dict) -> Image:
         # model, x, y, uvlock, weight
+        global models_built
+        # logger.info("Building models: {0}".format(models_built))
+        models_built +=1
         return self.render_model(
-            data=self.assetLoader.load_and_combine_model(data["model"]),
+            data=self.assetLoader.get_model(data["model"]),
             rotation_x_axis=data.get("x", 0),  # Increments of 90°
             rotation_y_axis=data.get("y", 0),  # Increments of 90°
             uvlock=data.get("uvlock", False)
         ), data.get("weight", 1)
+
 
     def render_blockstates(self, data: dict) -> (str, []):
         if "variants" in data:
@@ -409,10 +419,13 @@ class BlockRenderer(object):
     # Genrators and methods for rendering multiple block
     ################################################################
     def iter_blocks(self, name_list: list, ignore_unsupported_blocks=True):
+
         for block_index, block_name in enumerate(name_list):
+
+            print(block_name)
             try:
                 for nbt_index, (nbt_condition, variants) in enumerate(
-                        self.render_blockstates(self.assetLoader.load_blockstates(name=block_name))
+                        self.render_blockstates(self.assetLoader.load_blockstates(name=block_name)[1])
                 ):
                     yield block_index, block_name, nbt_index, nbt_condition, variants
             except NotImplementedError as e:
@@ -426,16 +439,17 @@ class BlockRenderer(object):
        
         return self.iter_blocks(sorted(self.assetLoader.get_blocklist()))
 
-    def get_max_size(self) -> (int, int):
-        blockid_count = len(list(self.block_list))
-        data_count = max(self.get_max_nbt_count(name) for name in list(self.block_list))
-        return blockid_count + self.start_block_id, data_count
+    # def get_max_size(self) -> (int, int):
+    #     blockid_count = len(list(self.block_list))
+    #     data_count = max(self.get_max_nbt_count(name) for name in list(self.block_list))
+    #     return blockid_count + self.start_block_id, data_count
 
     def iter_for_generate(self):
         for block_index, block_name, nbt_index, nbt_condition, variants in self.iter_all_blocks():
             if len(variants) >= 1:
                 logger.debug("Block found: {0} -> {1}:{2}".format(block_name, block_index, nbt_index))
                 BlockRenderer.store_nbt_as_int(block_name, nbt_condition, block_index + self.start_block_id, nbt_index)
+                # pprint((block_index + self.start_block_id, nbt_index), variants[0][0])
                 yield (block_index + self.start_block_id, nbt_index), variants[0][0]
 
     # @lru_cache()
@@ -450,8 +464,12 @@ class BlockRenderer(object):
         self._tex_names= {}
         self._tex_imgs = []
 
-
-        for i, (k, v) in enumerate(self.assetLoader.list_block_textures()):
+        _v =self.assetLoader.list_block_textures()
+        # pprint(_v)
+        for i, (k,v) in enumerate(_v.items()):
+            # print(i)
+            # print(k)
+            # print(self.process_texture(v))
             self._tex_imgs.append(self.process_texture(v))
             self._tex_names[k]= i
 
@@ -461,18 +479,26 @@ class BlockRenderer(object):
 
     def get_texture_index(self, name:str)-> int:
         # pprint(self._tex_names)
-        if "minecraft:" in name:
-            name = name.split(":")[1]
+        if "t:" not in name:
+             name = "{0}:{1}".format("minecraft", name)
+
         if not hasattr(self,"_tex_imgs"):
             raise ValueError("texture list has not been loaded yet.")
-
-        return self._tex_names.index(name)
+        # print(self._tex_names)
+        return self._tex_names[name]
 
 
     def process_texture(self, texture:Image)->Image:
         h, w =texture.size #get images size
         if h != w:# check image is square if not (for example due to animated texture) crop shorter side
             texture = texture.crop((0,0,min(h,w),min(h,w)))
+
         texture = texture.resize((self.mc_texture_size, self.mc_texture_size), Image.BOX)
+        h1, w1 = texture.size
+        if h1 != w1 != self.mc_texture_size:
+
+            # print("size error,{0} ".format(texture))
+            texture.show()
+        texture= texture.convert("RGBA")
         return texture
 

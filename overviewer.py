@@ -591,6 +591,7 @@ def main():
     else:
         dispatch = dispatcher.MultiprocessingDispatcher(
             local_procs=config['processes'])
+
     dispatch.render_all(tilesets, config['observer'])
     dispatch.close()
 
