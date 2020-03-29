@@ -66,14 +66,14 @@ class HeightFading(RenderPrimitive):
 class Depth(RenderPrimitive):
     name = "depth"
     options = {
-        "min": ("lowest level of blocks to render", 0),
-        "max": ("highest level of blocks to render", 255),
+        "min": ("lowest level of block to render", 0),
+        "max": ("highest level of block to render", 255),
     }
     
 class Exposed(RenderPrimitive):
     name = "exposed"
     options = {
-        "mode": ("0 = exposed blocks only, 1 = unexposed blocks only", 0),
+        "mode": ("0 = exposed block only, 1 = unexposed block only", 0),
     }
     
 class NoFluids(RenderPrimitive):
@@ -234,7 +234,7 @@ class BiomeOverlay(Overlay):
 class Hide(RenderPrimitive):
     name = "hide"
     options = {
-        'blocks' : ('a list of blockids or (blockid, data) tuples of blocks to hide', []),
+        'block' : ('a list of blockids or (blockid, data) tuples of block to hide', []),
     }
 
 # Built-in rendermodes for your convenience!

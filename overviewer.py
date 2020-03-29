@@ -138,7 +138,7 @@ def main():
 
 
     parser.add_argument("-g", "--generate-tileset", dest='gen_tile_set',nargs="?",
-                        help="Generate debug image with all blocks from given path (directory or jar). Stored in "
+                        help="Generate debug image with all block from given path (directory or jar). Stored in "
                              "outputdir so "
                              "this must be specified")
     # create a group for "plugin exes"

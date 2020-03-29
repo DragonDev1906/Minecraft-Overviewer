@@ -21,7 +21,7 @@ def reshape_biome_data(biome_array):
         return biome_array.reshape((16, 16))
     elif biome_len == 1024:
         # Ok here's the big brain explanation:
-        # Minecraft's new biomes have a resolution of 4x4x4 blocks.
+        # Minecraft's new biomes have a resolution of 4x4x4 block.
         # This means for a 16x256x16 chunk column we get 64 times for the vertical,
         # and 4x4 values for the horizontals.
         # Minecraft Wiki says some dumb thing about how "oh it's ordered by Z, then X, then Y",

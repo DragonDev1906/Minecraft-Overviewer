@@ -351,7 +351,7 @@ items = {
     450: 'Shulker Shell',
     2256: 'C418 - 13 Music Disc',
     2257: 'C418 - Cat Music Disc',
-    2258: 'C418 - blocks Music Disc',
+    2258: 'C418 - block Music Disc',
     2259: 'C418 - chirp Music Disc',
     2260: 'C418 - far Music Disc',
     2261: 'C418 - mall Music Disc',

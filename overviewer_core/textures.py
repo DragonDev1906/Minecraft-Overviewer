@@ -136,7 +136,7 @@ class Textures(object):
         "assets/minecraft/textures/block/grass_block_top.png"), self.assetLoader.load_image_texture(
         "assets/minecraft/textures/block/grass_block_side_overlay.png"))
         
-        # generate the blocks
+        # generate the block
         global blockmap_generators
         global known_blocks, used_datas
         global max_blockid, max_data
@@ -440,7 +440,7 @@ class Textures(object):
         alpha_over(img, otherside, (12,6), otherside)
 
         # Manually touch up 6 pixels that leave a gap because of how the
-        # shearing works out. This makes the blocks perfectly tessellate-able
+        # shearing works out. This makes the block perfectly tessellate-able
         for x,y in [(13,23), (17,21), (21,19)]:
             # Copy a pixel to x,y from x-1,y
             img.putpixel((x,y), img.getpixel((x-1,y)))
@@ -483,7 +483,7 @@ class Textures(object):
         alpha_over(img, top, (0,6 - delta), top)
 
         # Manually touch up 6 pixels that leave a gap because of how the
-        # shearing works out. This makes the blocks perfectly tessellate-able
+        # shearing works out. This makes the block perfectly tessellate-able
         if upper:
             for x,y in [(3,4), (7,2), (11,0)]:
                 # Copy a pixel to x,y from x+1,y
@@ -598,7 +598,7 @@ class Textures(object):
             alpha_over(img, top, (0, increment), top)
 
         # Manually touch up 6 pixels that leave a gap because of how the
-        # shearing works out. This makes the blocks perfectly tessellate-able
+        # shearing works out. This makes the block perfectly tessellate-able
         for x,y in [(13,23), (17,21), (21,19)]:
             # Copy a pixel to x,y from x-1,y
             img.putpixel((x,y), img.getpixel((x-1,y)))
@@ -705,7 +705,7 @@ def material(blockid=[], data=[0], **kwargs):
         return func_wrapper
     return inner_material
 
-# shortcut function for pure blocks, default to solid, nodata
+# shortcut function for pure block, default to solid, nodata
 def block(blockid=[], top_image=None, side_image=None, **kwargs):
     new_kwargs = {'solid' : True, 'nodata' : True}
     new_kwargs.update(kwargs)
@@ -721,7 +721,7 @@ def block(blockid=[], top_image=None, side_image=None, **kwargs):
         return self.build_block(self.assetLoader.load_image_texture(top_image), self.assetLoader.load_image_texture(side_image))
     return inner_block
 
-# shortcut function for sprite blocks, defaults to transparent, nodata
+# shortcut function for sprite block, defaults to transparent, nodata
 def sprite(blockid=[], imagename=None, **kwargs):
     new_kwargs = {'transparent' : True, 'nodata' : True}
     new_kwargs.update(kwargs)
@@ -734,7 +734,7 @@ def sprite(blockid=[], imagename=None, **kwargs):
         return self.build_sprite(self.assetLoader.load_image_texture(imagename))
     return inner_sprite
 
-# shortcut function for billboard blocks, defaults to transparent, nodata
+# shortcut function for billboard block, defaults to transparent, nodata
 def billboard(blockid=[], imagename=None, **kwargs):
     new_kwargs = {'transparent' : True, 'nodata' : True}
     new_kwargs.update(kwargs)
@@ -1023,7 +1023,7 @@ def wood(self, blockid, data):
 @material(blockid=[18, 161], data=list(range(16)), transparent=True, solid=True)
 def leaves(self, blockid, data):
     # mask out the bits 4 and 8
-    # they are used for player placed and check-for-decay blocks
+    # they are used for player placed and check-for-decay block
     data = data & 0x7
     t = self.assetLoader.load_image_texture("assets/minecraft/textures/block/oak_leaves.png")
     if (blockid, data) == (18, 1): # pine!
@@ -1359,7 +1359,7 @@ def piston(self, blockid, data):
     back_t = self.assetLoader.load_image_texture("assets/minecraft/textures/block/piston_bottom.png").copy()
     interior_t = self.assetLoader.load_image_texture("assets/minecraft/textures/block/piston_inner.png").copy()
     
-    if data & 0x08 == 0x08: # pushed out, non full blocks, tricky stuff
+    if data & 0x08 == 0x08: # pushed out, non full block, tricky stuff
         # remove piston texture from piston body
         ImageDraw.Draw(side_t).rectangle((0, 0,16,3),outline=(0,0,0,0),fill=(0,0,0,0))
         
@@ -1387,7 +1387,7 @@ def piston(self, blockid, data):
         elif data & 0x07 == 0x5: # south
             img = self.build_full_block(side_t.rotate(270) ,None , None ,back_t, side_t.rotate(90))
 
-    else: # pushed in, normal full blocks, easy stuff
+    else: # pushed in, normal full block, easy stuff
         if data & 0x07 == 0x0: # down
             side_t = side_t.rotate(180)
             img = self.build_full_block(back_t ,None ,None ,side_t, side_t)
@@ -1537,7 +1537,7 @@ block(blockid=42, top_image="assets/minecraft/textures/block/iron_block.png")
 
 # double slabs and slabs
 # these wooden slabs are unobtainable without cheating, they are still
-# here because lots of pre-1.3 worlds use this blocks, add prismarine slabs
+# here because lots of pre-1.3 worlds use this block, add prismarine slabs
 @material(blockid=[43, 44, 181, 182, 204, 205] + list(range(11340,11359)), data=list(range(16)),
           transparent=[44, 182, 205] + list(range(11340,11359)), solid=True)
 def slabs(self, blockid, data):
@@ -2431,7 +2431,7 @@ def crops8(self, blockid, data):
     alpha_over(img, crop3, (6,3), crop3)
     return img
 
-# farmland and grass path (15/16 blocks)
+# farmland and grass path (15/16 block)
 @material(blockid=[60,208], data=list(range(9)), solid=True)
 def farmland(self, blockid, data):
     if blockid == 60:
@@ -2691,7 +2691,7 @@ def ladder(self, blockid, data):
 
     if data == 5:
         # normally this ladder would be obsured by the block it's attached to
-        # but since ladders can apparently be placed on transparent blocks, we 
+        # but since ladders can apparently be placed on transparent block, we
         # have to render this thing anyway.  same for data == 2
         tex = self.transform_image_side(raw_texture)
         alpha_over(img, tex, (0,6), tex)
@@ -2832,7 +2832,7 @@ def levers(self, blockid, data):
     
     # wall levers
     if data == 1: # facing SOUTH
-        # levers can't be placed in transparent blocks, so this
+        # levers can't be placed in transparent block, so this
         # direction is almost invisible
         return None
 
@@ -2877,7 +2877,7 @@ def levers(self, blockid, data):
         alpha_over(img, t_stick, pos, t_stick)
 
     elif data == 4: # facing EAST
-        # levers can't be placed in transparent blocks, so this
+        # levers can't be placed in transparent block, so this
         # direction is almost invisible
         return None
 
@@ -3011,7 +3011,7 @@ def buttons(self, blockid, data):
         button = self.transform_image_side(t)
 
         if data == 1: # facing SOUTH
-            # buttons can't be placed in transparent blocks, so this
+            # buttons can't be placed in transparent block, so this
             # direction can't be seen
             return None
 
@@ -3037,7 +3037,7 @@ def buttons(self, blockid, data):
             alpha_over(img, button, (1,0), button)
 
         elif data == 4: # facing EAST
-            # buttons can't be placed in transparent blocks, so this
+            # buttons can't be placed in transparent block, so this
             # direction can't be seen
             return None
 
@@ -4740,14 +4740,14 @@ block(blockid=11313, top_image="assets/minecraft/textures/block/smooth_stone.png
 block(blockid=11314, top_image="assets/minecraft/textures/block/sandstone_top.png") # sandstone
 block(blockid=11315, top_image="assets/minecraft/textures/block/red_sandstone_top.png") # red sandstone
 
-#coral blocks
+#coral block
 block(blockid=11316, top_image="assets/minecraft/textures/block/brain_coral_block.png")
 block(blockid=11317, top_image="assets/minecraft/textures/block/bubble_coral_block.png")
 block(blockid=11318, top_image="assets/minecraft/textures/block/fire_coral_block.png")
 block(blockid=11319, top_image="assets/minecraft/textures/block/horn_coral_block.png")
 block(blockid=11320, top_image="assets/minecraft/textures/block/tube_coral_block.png")
 
-#dead coral blocks
+#dead coral block
 block(blockid=11321, top_image="assets/minecraft/textures/block/dead_brain_coral_block.png")
 block(blockid=11322, top_image="assets/minecraft/textures/block/dead_bubble_coral_block.png")
 block(blockid=11323, top_image="assets/minecraft/textures/block/dead_fire_coral_block.png")

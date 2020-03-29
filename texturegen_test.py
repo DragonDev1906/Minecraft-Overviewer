@@ -116,7 +116,7 @@ for block_name, nbt_index, nbt_condition, variants in block_renderer.iter_blocks
 # print("Size if all textures could be used:", texturegen.BlockRenderer(
 #     textures_instance, block_list=block_names).get_max_size()
 #       )
-# print("Size with current blocks:", block_renderer.get_max_size())
+# print("Size with current block:", block_renderer.get_max_size())
 for (blockid, data), img in block_renderer.iter_for_generate():
     add_img(img)
 

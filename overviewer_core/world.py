@@ -705,7 +705,7 @@ class RegionSet(object):
 
             'minecraft:armor_stand': (416, 0),  # not rendering
 
-            # The following blocks are underwater and are not yet rendered.
+            # The following block are underwater and are not yet rendered.
             # To avoid spurious warnings, we'll treat them as water for now.
             'minecraft:brain_coral': (8, 0),
             'minecraft:brain_coral_fan': (8, 0),
@@ -729,7 +729,7 @@ class RegionSet(object):
             'minecraft:tube_coral_fan': (8, 0),
             'minecraft:tube_coral_wall_fan': (8, 0),
 
-            # New blocks
+            # New block
             'minecraft:carved_pumpkin': (11300, 0),
             'minecraft:spruce_pressure_plate': (11301, 0),
             'minecraft:birch_pressure_plate': (11302, 0),
@@ -836,7 +836,7 @@ class RegionSet(object):
             "minecraft:smooth_red_sandstone_stairs": (11415, 0),
             'minecraft:bamboo': (11416, 0),
             "minecraft:composter": (11417, 0),
-            # 1.15 blocks below
+            # 1.15 block below
             'minecraft:beehive': (11501, 0),
             'minecraft:bee_nest': (11502, 0),
             'minecraft:honeycomb_block': (11503, 0),
@@ -1284,11 +1284,11 @@ class RegionSet(object):
         # Turn the Blocks array into a 16x16x16 numpy matrix of shorts,
         # adding in the additional block array if included.
         blocks = numpy.frombuffer(section['Blocks'], dtype=numpy.uint8)
-        # Cast up to uint16, blocks can have up to 12 bits of data
+        # Cast up to uint16, block can have up to 12 bits of data
         blocks = blocks.astype(numpy.uint16)
         blocks = blocks.reshape((16,16,16))
         if "Add" in section:
-            # This section has additional bits to tack on to the blocks
+            # This section has additional bits to tack on to the block
             # array. Add is a packed array with 4 bits per slot, so
             # it needs expanding
             additional = numpy.frombuffer(section['Add'], dtype=numpy.uint8)
@@ -1454,7 +1454,7 @@ class RegionSet(object):
                 raise nbt.CorruptChunkError()
 
         for k in unrecognized_block_types:
-            logging.debug("Found %d blocks of unknown type %s" % (unrecognized_block_types[k], k))
+            logging.debug("Found %d block of unknown type %s" % (unrecognized_block_types[k], k))
 
         return chunk_data
 

@@ -43,7 +43,7 @@ def gen_tileset(outputdir, texturepath=None):
     #     textures_instance, block_list=block_names).get_max_size()
     #       )
     # print(list(block_renderer.iter_all_blocks()))
-    print("Size with current blocks:", block_renderer.get_max_size())
+    print("Size with current block:", block_renderer.get_max_size())
     for (blockid, data), img in block_renderer.iter_for_generate():
         # print("hi")
         add_img(img)

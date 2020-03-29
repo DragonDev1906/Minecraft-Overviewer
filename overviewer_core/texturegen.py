@@ -79,7 +79,7 @@ def load_obj(ctx, render_program, path):
             elif line.startswith('vn '):
                 raw_normals.append(args)
             elif line.startswith('f '):
-                raw_faces.append((x.split('/') for x in args))
+                raw_faces.append(tuple(x.split('/') for x in args))
             else:
                 pass
 
@@ -117,8 +117,8 @@ def load_obj(ctx, render_program, path):
     ], dtype="u4")
 
     # By reshaping the array all values can be read more easily
-    # print(data.reshape((data.size // 8, 8)))
-    # print(face_indicies)
+    print(data.reshape((data.size // 8, 8)))
+    print(face_indicies)
 
     # Create a buffer containing the data
     cube_vbo = ctx.buffer(data.tobytes())
@@ -156,7 +156,7 @@ class BlockRenderer(object):
         if block_list is None:
             self.block_list = self.assetLoader.get_blocklist()
         else: self.block_list = block_list
-
+        self._block_textures()
         # Settings for rendering
         self.resolution = resolution
 
@@ -315,24 +315,24 @@ class BlockRenderer(object):
 
     def render_model(self, data: dict, rotation_x_axis, rotation_y_axis, uvlock):
         """
-        This method is currently only using existing draw methods. Because of that only full size blocks can be created.
+        This method is currently only using existing draw methods. Because of that only full size block can be created.
 
         Assumption:
         - The bottom texture is pointing in the reverse direction of the top texture
-        Reason: models/blocks/template_glaced_terracotta.json does not rotate the top or bottom faces
+        Reason: models/block/template_glaced_terracotta.json does not rotate the top or bottom faces
         ==> This Indicates the default rotation
 
         Limitations:
-        - Only full blocks
+        - Only full block
         - Rotation is not supported
         - UV coordinates must be [0, 0, 16, 16] (can be implemented bt isn't yet)
         - tintcolor
         """
         # Check if there are errors and the block can't be rendered correctly because of limitations listed above
         if data["elements"] is None or len(data["elements"]) == 0:
-            raise NotImplementedError("Only blocks with 'elements' are supported.")
+            raise NotImplementedError("Only block with 'elements' are supported.")
 
-        # Check if the blocks is currently supported
+        # Check if the block is currently supported
         for part in data["elements"]:
             if "rotation" in part:
                 raise NotImplementedError("Rotated Elements are not supported")
@@ -372,7 +372,7 @@ class BlockRenderer(object):
                     for v in (variant if type(variant) == list else (variant,))
                 ])
         else:
-            raise NotImplementedError("Multipart is not supported. Only blocks using 'variants' are.")
+            raise NotImplementedError("Multipart is not supported. Only block using 'variants' are.")
 
     ################################################################
     # NBT to Data conversion
@@ -406,7 +406,7 @@ class BlockRenderer(object):
             return None, None
 
     ################################################################
-    # Genrators and methods for rendering multiple blocks
+    # Genrators and methods for rendering multiple block
     ################################################################
     def iter_blocks(self, name_list: list, ignore_unsupported_blocks=True):
         for block_index, block_name in enumerate(name_list):
@@ -443,28 +443,36 @@ class BlockRenderer(object):
         """Wrapper to return all block texture currently, may be expanded to include items later"""
         return self.get_all_block_textures()
 
-    def get_all_block_textures(self):
-        return self._block_textures
 
-    @property
-    def _block_textures(self)->list:
-        if hasattr(self,"_tex_imgs"):
-            return self._tex_imgs
-        else:
-            self._tex_names= []
-            self._tex_imgs = []
+    def get_all_block_textures(self)->list:
+        print("Generating block texture list...")
 
-            _lst= list(sorted(self.assetLoader.walk_assets(self.assetLoader.TEXTURES_DIR, r"/block/.*\.png$")))
-            pprint(_lst)
-            for i in _lst:
-                print(i)
-                self._tex_imgs.append(self.assetLoader.load_img(i))
-                self._tex_names.append(os.path.splitext(i)[0])
+        self._tex_names= {}
+        self._tex_imgs = []
 
 
-            return self._tex_imgs
+        for i, (k, v) in enumerate(self.assetLoader.list_block_textures()):
+            self._tex_imgs.append(self.process_texture(v))
+            self._tex_names[k]= i
+
+
+        return self._tex_imgs
+
 
     def get_texture_index(self, name:str)-> int:
+        # pprint(self._tex_names)
+        if "minecraft:" in name:
+            name = name.split(":")[1]
         if not hasattr(self,"_tex_imgs"):
-            self.get_all_block_textures()
+            raise ValueError("texture list has not been loaded yet.")
+
         return self._tex_names.index(name)
+
+
+    def process_texture(self, texture:Image)->Image:
+        h, w =texture.size #get images size
+        if h != w:# check image is square if not (for example due to animated texture) crop shorter side
+            texture = texture.crop((0,0,min(h,w),min(h,w)))
+        texture = texture.resize((self.mc_texture_size, self.mc_texture_size), Image.BOX)
+        return texture
+
