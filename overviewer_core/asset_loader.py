@@ -1,5 +1,4 @@
 import imp
-import io
 import json
 import logging
 import os
@@ -7,16 +6,13 @@ import re
 import sys
 import zipfile
 from collections import OrderedDict
-from copy import copy
-from pprint import pprint
+
 import PIL.Image as Image
-from cached_property import cached_property, threaded_cached_property
 
 from typing.io import IO
 
 from overviewer_core import util
 
-from functools import lru_cache
 
 from typing import Optional, Sequence, Dict, Tuple, Union
 # from dogpile.cache import make_region
@@ -39,8 +35,6 @@ class AssetLoaderException(Exception):
 class zipFileWrapper(zipfile.ZipFile):
     def open(self, name, mode="r", pwd=None, force_zip64=False, encoding=None):
         return zipfile.ZipFile.open(self, name, pwd=pwd, force_zip64=force_zip64)
-
-
     @property
     def namelist(self):
         if not hasattr(self, "_nameList"):
@@ -70,7 +64,8 @@ class Directory(object):
 
     def close(self):
         pass
-# @region.cache_on_arguments()
+
+
 def opencontainer(path):
     if zipfile.is_zipfile(path):
         return zipFileWrapper(path)
@@ -113,19 +108,17 @@ class AssetLoader(object):
     MODELS_DIR = "assets/minecraft/models"
     TEXTURES_DIR = "assets/minecraft/textures"
 
-    def __init__(self, texturepath):
+    def __init__(self, texturepath, tex_size):
         self.texturepath = texturepath
+        self.tex_size = tex_size
         if type(texturepath) == list:
             self.paths = texturepath
         else:
             self.paths=[texturepath]
         self.r_name_from_path= re.compile("^assets[\\/]([^\\/]+)[\\/]([^\\/]+)[\\/](.*?)(?:\.[^.\\/]*)?$")
         self.r_blockstates= re.compile("assets[\\/]([^\\/]+)[\\/](blockstates)[\\/](.*?)(?:\.[^.\\/]*)?$")
-        self.r_textures= re.compile("assets[\\/]([^\\/]+)[\\/](textures)[\\/](.*?)(?:\.png$)")
+        self.r_textures= re.compile("assets[\\/]([^\\/]+)[\\/](textures)[\\/](.*?)(?:\.[^.\\/]*)?\.png$")
         self.r_models= re.compile("assets[\\/]([^\\/]+)[\\/](models)[\\/](.*?)(?:\.[^.\\/]*)?$")
-
-
-
         self.paths += self._get_default_locations()
 
         _path_obj = OrderedDict([(i,opencontainer(i)) for i in self.paths])
@@ -144,19 +137,28 @@ class AssetLoader(object):
 
         # pprint(self._textures)
 
-        pprint(self.get_blocklist())
+        # pprint(self.get_blocklist())
 
         # self._blockstates= self.load_blockstates()
 
 
         # self.load_all_blockstates()
 
+    # def __getstate__(self):
+    #     _dict =self.__dict__
+    #     pprint(_dict)
+    #     return _dict
+    #
+    # def __setstate__(self, state:dict):
+    #     for k,v in state.items():
+    #         setattr(self,k,v)
 
     def load_all_blockstates(self, paths):
         self._blockstates = {n: self._load_json(f, p, paths=paths) for n, (f,p) in self._blockstates_paths.items()}
 
     def load_all_textures(self, paths):
         # pprint(self._textures_paths)
+        # pprint({n: self._load_image(f, p, paths=paths) for n, (f,p) in self._textures_paths.items()})
         self._textures = {n: self._load_image(f, p, paths=paths) for n, (f,p) in self._textures_paths.items()}
 
     def load_all_models(self, paths):
@@ -245,21 +247,13 @@ class AssetLoader(object):
                 self.r_models, paths).items()}
         return _blockstates, _textures, _models
 
-
-
     def _load_file(self, file, mode="r", paths = None)->Tuple[Union[zipFileWrapper,Directory], IO]:
 
         # print("loading File: ", file)
         for p,c in paths.items():
             # path = opencontainer(p)
             if file in c.namelist:
-                if mode=="r":
-                    _IOObj = io.BytesIO
-                else:
-                    _IOObj = io.StringIO
-                with c.open(file, mode=mode) as f:
-                    _IOObj = copy(f)
-                    return c,_IOObj
+                return c,c.open(file, mode=mode)
 
         raise ValueError("Could not find the requested file.")
 
@@ -272,25 +266,29 @@ class AssetLoader(object):
                 return path, json.load(f)
 
 
-    def _load_image(self, file, path =None, paths=None)->Image:
-        if path is None:
-            with self._load_file(file, mode="rb", paths=paths) as f:
-                return Image.open(f).copy()
-        else:
-            with self.load_file_from_path(path, file, mode="rb", paths=paths) as f:
-                return Image.open(f).copy()
+    def _load_image(self, file, path =None, paths=None, size =(16,16))->bytes:
+        print("_load_image()")
+        with self._load_file(file, mode="rb", paths=paths)[1]  if (path is not None ) else self.load_file_from_path(
+                    path, file, mode="rb", paths=paths)[1]  as f:
+            print(f)
+            texture = Image.open(f)
+            # texture = Image.frombytes("RGBA", (16,16), texture)
+            h, w =texture.size #get images size
+            if h != w:# check image is square if not (for example due to animated texture) crop shorter side
+                texture = texture.crop((0,0,min(h,w),min(h,w)))
+            texture = texture.resize(self.tex_size, Image.BOX)
+            texture =texture.convert("RGBA")
+            return  texture.tobytes()
 
-
-    def load_block_texture(self, texture, ext=".png", path=None)->Image:
-        name = "assets/minecraft/textures/block/{0}{1}".format(texture, ext)
-        # print("searching for path: ", name)
-        if path is None:
-            with self._load_file(name, mode="rb") as f:
-                return Image.open(f).copy()
-        else:
-            with self.load_file_from_path(path,name, mode="rb") as f:
-                return Image.open(f).copy()
-
+    # def load_block_texture(self, texture, ext=".png", path=None)->Image:
+    #     name = "assets/minecraft/textures/block/{0}{1}".format(texture, ext)
+    #     # print("searching for path: ", name)
+    #     if path is None:
+    #         with self._load_file(name, mode="rb") as f:
+    #             return Image.open(f).copy()
+    #     else:
+    #         with self.load_file_from_path(path,name, mode="rb") as f:
+    #             return Image.open(f).copy()
 
     def read_items(self,type)->dict:raise NotImplemented
 
@@ -298,13 +296,13 @@ class AssetLoader(object):
 
         return {n:v  for n,v in self._textures.items() if "block/" in n}
 
-    def load_image(self, name):
+    def load_image(self, name, size=None)->Image.Image:
+        # pprint(self._textures)
+        if size is None: size= self.tex_size
         try:
-            return self._textures[name]
+            return Image.frombytes("RGBA", size, self._textures[name])
         except:
-            return self._textures[self.build_FQDN(name)]
-
-
+            return Image.frombytes("RGBA", size, self._textures[self.build_FQDN(name)])
 
     def load_blockstates(self, name)->dict:
         try:
@@ -345,13 +343,14 @@ class AssetLoader(object):
             return self._load_json(data, path=path)
         except:
             raise ValueError("Could not resolve model name")
+
     def get_blocklist(self)->set:
         return set(self._blocklist)
 
     def _get_blocklist(self, paths):
         _ret = self.list_files_matching("/blockstates/.*\.json", paths=paths)
         # logger.info("Loading blocklist..")
-        pprint(set(os.path.splitext(os.path.split(bs)[1])[0] for bs in _ret.keys()))
+        # pprint(set(os.path.splitext(os.path.split(bs)[1])[0] for bs in _ret.keys()))
         return  set(os.path.splitext(os.path.split(bs)[1])[0] for bs in _ret.keys())
 
     def list_files_matching(self, pattern:Union[str], paths)->dict:
@@ -398,7 +397,6 @@ class AssetLoader(object):
 
         return path, _fn
         # return _ret
-
 
     def load_file_from_path(self,path, file,paths, mode="r")->Optional[IO]:
 

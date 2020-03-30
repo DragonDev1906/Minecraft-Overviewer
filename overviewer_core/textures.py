@@ -12,14 +12,10 @@
 #
 #    You should have received a copy of the GNU General Public License along
 #    with the Overviewer.  If not, see <http://www.gnu.org/licenses/>.
-from collections import OrderedDict
-import sys
 import imp
-import os
-import os.path
-import zipfile
-from io import BytesIO
+
 import math
+from pprint import pprint
 from random import randint
 import numpy
 from PIL import Image, ImageEnhance, ImageOps, ImageDraw
@@ -76,7 +72,7 @@ class Textures(object):
         self.bgcolor = bgcolor
         self.rotation = northdirection
         self.find_file_local_path = texturepath
-        self.assetLoader = AssetLoader(texturepath)
+        self.assetLoader = AssetLoader(texturepath, (16,16))
         # not yet configurable
         self.texture_size = 24
         self.texture_dimensions = (self.texture_size, self.texture_size)
@@ -97,6 +93,7 @@ class Textures(object):
     def __getstate__(self):
         # we must get rid of the huge image lists, and other images
         attributes = self.__dict__.copy()
+        pprint(attributes)
         for attr in ['blockmap', 'biome_grass_texture', 'watertexture', 'lavatexture', 'firetexture', 'portaltexture', 'lightcolor', 'grasscolor', 'foliagecolor', 'watercolor', 'texture_cache']:
             try:
                 del attributes[attr]
@@ -113,11 +110,13 @@ class Textures(object):
         self.texture_cache = {}
         if self.generated:
             self.generate()
+            #todo: remove this call to generate
     
     ##
     ## The big one: generate()
     ##
-    def process_texture(self, texture:Image)->Image:
+    def process_texture(self, texture)->Image:
+        # texture = Image.frombytes("RGBA", (16,16), texture)
         h, w =texture.size #get images size
         if h != w:# check image is square if not (for example due to animated texture) crop shorter side
             texture = texture.crop((0,0,min(h,w),min(h,w)))
@@ -285,7 +284,7 @@ class Textures(object):
     def load_water_color(self):
         """Helper function to load the water color texture."""
         if not hasattr(self, "watercolor"):
-            self.watercolor = list(self.assetLoader.load_image("watercolor").getdata())
+            self.watercolor = list(self.assetLoader.load_image("minecraft:block/watercolor").getdata())
         return self.watercolor
 
     def _split_terrain(self, terrain):

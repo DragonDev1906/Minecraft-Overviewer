@@ -150,10 +150,11 @@ class BlockRenderer(object):
         # Not direclty related to rendering
 
         self.textures = textures
-        self.assetLoader = AssetLoader(textures.find_file_local_path)
+        self.mc_texture_size = mc_texture_size
+        self.assetLoader = AssetLoader(textures.find_file_local_path, (self.mc_texture_size, self.mc_texture_size))
 
         self.start_block_id = start_block_id
-        self.mc_texture_size = mc_texture_size
+
         if block_list is None:
             self.block_list = self.assetLoader.get_blocklist()
         else: self.block_list = block_list
@@ -489,6 +490,7 @@ class BlockRenderer(object):
 
 
     def process_texture(self, texture:Image)->Image:
+        texture = Image.frombytes("RGBA", (16,16), texture)
         h, w =texture.size #get images size
         if h != w:# check image is square if not (for example due to animated texture) crop shorter side
             texture = texture.crop((0,0,min(h,w),min(h,w)))
