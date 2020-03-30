@@ -94,7 +94,9 @@ class Textures(object):
         # we must get rid of the huge image lists, and other images
         attributes = self.__dict__.copy()
         pprint(attributes)
-        for attr in ['blockmap', 'biome_grass_texture', 'watertexture', 'lavatexture', 'firetexture', 'portaltexture', 'lightcolor', 'grasscolor', 'foliagecolor', 'watercolor', 'texture_cache']:
+        for attr in ['blockmap', 'biome_grass_texture', 'watertexture', 'lavatexture', 'firetexture',
+                     'portaltexture', 'lightcolor', 'grasscolor', 'foliagecolor', 'watercolor', 'texture_cache',
+                     ]:
             try:
                 del attributes[attr]
             except KeyError:

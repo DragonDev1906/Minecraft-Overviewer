@@ -490,7 +490,7 @@ class BlockRenderer(object):
 
 
     def process_texture(self, texture:Image)->Image:
-        texture = Image.frombytes("RGBA", (16,16), texture)
+        # texture = Image.frombytes("RGBA", (16,16), texture)
         h, w =texture.size #get images size
         if h != w:# check image is square if not (for example due to animated texture) crop shorter side
             texture = texture.crop((0,0,min(h,w),min(h,w)))

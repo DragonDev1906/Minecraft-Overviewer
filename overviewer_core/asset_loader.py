@@ -6,15 +6,11 @@ import re
 import sys
 import zipfile
 from collections import OrderedDict
-
 import PIL.Image as Image
-
 from typing.io import IO
 
-from overviewer_core import util
-
-
 from typing import Optional, Sequence, Dict, Tuple, Union
+from overviewer_core import util
 # from dogpile.cache import make_region
 #
 logger = logging.getLogger(__name__)
@@ -107,7 +103,10 @@ class AssetLoader(object):
     BLOCKSTATES_DIR = "assets/minecraft/blockstates"
     MODELS_DIR = "assets/minecraft/models"
     TEXTURES_DIR = "assets/minecraft/textures"
-
+    r_name_from_path= re.compile("^assets[\\/]([^\\/]+)[\\/]([^\\/]+)[\\/](.*?)(?:\.[^.\\/]*)?$")
+    r_blockstates= re.compile("assets[\\/]([^\\/]+)[\\/](blockstates)[\\/](.*?)(?:\.[^.\\/]*)?$")
+    r_textures= re.compile("assets[\\/]([^\\/]+)[\\/](textures)[\\/](.*?)(?:\.[^.\\/]*)?\.png$")
+    r_models= re.compile("assets[\\/]([^\\/]+)[\\/](models)[\\/](.*?)(?:\.[^.\\/]*)?$")
     def __init__(self, texturepath, tex_size):
         self.texturepath = texturepath
         self.tex_size = tex_size
@@ -115,12 +114,8 @@ class AssetLoader(object):
             self.paths = texturepath
         else:
             self.paths=[texturepath]
-        self.r_name_from_path= re.compile("^assets[\\/]([^\\/]+)[\\/]([^\\/]+)[\\/](.*?)(?:\.[^.\\/]*)?$")
-        self.r_blockstates= re.compile("assets[\\/]([^\\/]+)[\\/](blockstates)[\\/](.*?)(?:\.[^.\\/]*)?$")
-        self.r_textures= re.compile("assets[\\/]([^\\/]+)[\\/](textures)[\\/](.*?)(?:\.[^.\\/]*)?\.png$")
-        self.r_models= re.compile("assets[\\/]([^\\/]+)[\\/](models)[\\/](.*?)(?:\.[^.\\/]*)?$")
-        self.paths += self._get_default_locations()
 
+        self.paths += self._get_default_locations()
         _path_obj = OrderedDict([(i,opencontainer(i)) for i in self.paths])
         self._blockstates_paths, self._textures_paths, self._model_paths = self.load_all_asset_paths(_path_obj)
         self.load_all_models(_path_obj)
@@ -128,17 +123,11 @@ class AssetLoader(object):
         self.load_all_blockstates(_path_obj)
         self._blocklist = self._get_blocklist(paths=_path_obj)
 
-        for k,v in _path_obj.items():
+        for k,v in _path_obj.items():#close path objects
+            print(type(v))
             v.close()
 
-            # pprint(self._blockstates)
-            # pprint(self._textures)
-            # pprint(self._models)
-
-        # pprint(self._textures)
-
-        # pprint(self.get_blocklist())
-
+        pass
         # self._blockstates= self.load_blockstates()
 
 
@@ -272,13 +261,8 @@ class AssetLoader(object):
                     path, file, mode="rb", paths=paths)[1]  as f:
             print(f)
             texture = Image.open(f)
-            # texture = Image.frombytes("RGBA", (16,16), texture)
-            h, w =texture.size #get images size
-            if h != w:# check image is square if not (for example due to animated texture) crop shorter side
-                texture = texture.crop((0,0,min(h,w),min(h,w)))
-            texture = texture.resize(self.tex_size, Image.BOX)
-            texture =texture.convert("RGBA")
-            return  texture.tobytes()
+
+            return  texture.copy()
 
     # def load_block_texture(self, texture, ext=".png", path=None)->Image:
     #     name = "assets/minecraft/textures/block/{0}{1}".format(texture, ext)
@@ -296,13 +280,25 @@ class AssetLoader(object):
 
         return {n:v  for n,v in self._textures.items() if "block/" in n}
 
-    def load_image(self, name, size=None)->Image.Image:
+    def load_image(self, name, size:Tuple[int, int]=None, mode:str= "RGBA")->Image.Image:
         # pprint(self._textures)
-        if size is None: size= self.tex_size
+
         try:
-            return Image.frombytes("RGBA", size, self._textures[name])
+            texture= self._textures[name]
         except:
-            return Image.frombytes("RGBA", size, self._textures[self.build_FQDN(name)])
+            texture= self._textures[self.build_FQDN(name)]
+
+        # texture = Image.frombytes("RGBA", (16,16), texture)
+        h, w =texture.size #get images size
+        if h != w:# check image is square if not (for example due to animated texture) crop shorter side
+            texture = texture.crop((0,0,min(h,w),min(h,w)))
+        if texture.mode != mode:
+            texture = texture.convert(mode)
+        if size is not None:
+            texture = texture.resize(size, Image.BOX)
+        texture =texture.convert("RGBA")
+        return texture
+
 
     def load_blockstates(self, name)->dict:
         try:
