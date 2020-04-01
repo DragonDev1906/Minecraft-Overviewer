@@ -98,7 +98,7 @@ class Textures(object):
         # we must get rid of the huge image lists, and other images
         attributes = self.__dict__.copy()
         for attr in ['blockmap', 'biome_grass_texture', 'watertexture', 'lavatexture', 'firetexture', 'portaltexture',
-                     'lightcolor', 'grasscolor', 'foliagecolor', 'watercolor', 'texture_cache']:
+                     'lightcolor', 'grasscolor', 'foliagecolor', 'watercolor', 'texture_cache', 'assetLoader']:
             try:
                 del attributes[attr]
             except KeyError:
@@ -111,6 +111,7 @@ class Textures(object):
         for attr, val in list(attrs.items()):
             setattr(self, attr, val)
         self.texture_cache = {}
+        self.assetLoader = AssetLoader(self.find_file_local_path)
         if self.generated:
             self.generate()
 
