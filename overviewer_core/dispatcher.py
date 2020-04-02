@@ -17,10 +17,17 @@ import multiprocessing
 import multiprocessing.managers
 import queue
 import time
+from collections import OrderedDict
+from typing import Tuple, Union
+
+from PIL.Image import Image
 
 from . import util
 from .signals import Signal
+from .texturegen import BlockRenderer
+from .textures import Textures
 
+blockIdentifierType = Tuple[str, dict]
 
 class Dispatcher:
     """This class coordinates the work of all the TileSet objects
@@ -151,6 +158,7 @@ class MultiprocessingDispatcherManager(multiprocessing.managers.BaseManager):
     """This multiprocessing manager is responsible for giving worker
     processes access to the communication Queues, and also gives
     workers access to the current tileset list.
+    https://docs.python.org/3.8/library/multiprocessing.html#multiprocessing-managers
     """
     def _get_job_queue(self):
         return self.job_queue
@@ -164,20 +172,51 @@ class MultiprocessingDispatcherManager(multiprocessing.managers.BaseManager):
     def _get_tileset_data(self):
         return self.tileset_data
 
+    def _get_rendered_block(self, block_identifier:blockIdentifierType)->Union[Image, None]:
+        with self.block_cache_lock:
+            if block_identifier in self.block_cache.keys():
+
+                return self.block_cache[block_identifier]
+            else: return None
+
+    def _request_block_render(self, block_identifier:blockIdentifierType)->None:
+        if (not block_identifier in self.requested_renders) & (block_identifier not in self.block_cache.keys() ):
+            with self.block_cache_lock:
+                self.block_render_queue.put(block_identifier)
+                self.requested_renders.add(block_identifier)
+
+
+    def _block_render_complete(self, block_identifier:blockIdentifierType, rendered_block:Image):
+        with self.block_cache_lock:
+            self.block_cache[block_identifier] = rendered_block
+            self.requested_renders.remove(block_identifier)
+
+    def _get_block_render_queue(self): return self.block_render_queue
+
     def __init__(self, address=None, authkey=None):
         self.job_queue = multiprocessing.Queue()
         self.result_queue = multiprocessing.Queue()
         self.signal_queue = multiprocessing.Queue()
-
+        self.block_render_queue = multiprocessing.Queue()
+        self.requested_renders = set()
+        self.block_cache = OrderedDict()
+        self.block_cache_length = 1000 #not implimented yet
         self.tilesets = []
         self.tileset_version = 0
         self.tileset_data = [[], 0]
+        self.block_cache_lock = multiprocessing.Lock()
 
-        self.register("get_job_queue", callable=self._get_job_queue)
-        self.register("get_result_queue", callable=self._get_results_queue)
-        self.register("get_signal_queue", callable=self._get_signal_queue)
+        self.register("get_job_queue", callable=self._get_job_queue) # todo: types & purpose
+
+        self.register("get_result_queue", callable=self._get_results_queue) # todo: types & purpose
+        self.register("get_signal_queue", callable=self._get_signal_queue) # todo: types & purpose
         self.register("get_tileset_data", callable=self._get_tileset_data,
-                      proxytype=multiprocessing.managers.ListProxy)
+                      proxytype=multiprocessing.managers.ListProxy)# todo: types & purpose
+
+        self.register("get_rendered_block", callable=self._get_rendered_block)
+        self.register("request_block_render", callable=self._request_block_render)
+        self.register("block_render_complete", callable=self._block_render_complete)
+        self.register("get_block_render_queue", callable=self._get_block_render_queue)
 
         super(MultiprocessingDispatcherManager, self).__init__(address=address, authkey=authkey)
 
@@ -201,13 +240,34 @@ class MultiprocessingDispatcherManager(multiprocessing.managers.BaseManager):
         data[1] = self.tileset_version
 
 
+class MultiprocessingBlockRendererProcess(multiprocessing.Process):
+
+    def __init__(self, manager:MultiprocessingDispatcherManager, assets_dir:str):
+        super(MultiprocessingBlockRendererProcess, self).__init__()
+        self._manager=manager
+        self.block_render_queue = manager.get_block_render_queue()
+        # self._manager.getr
+
+        self.blockRenderer = BlockRenderer(assets_dir)
+
+
+
+    def run(self) -> None:
+        timeout = 0.1
+        while True:
+            _job = self.block_render_queue.get(True, timeout)
+            if _job is None :
+                return
+            _texture = self.blockRenderer.render_block(*_job)
+            self._manager.block_render_complete(_job, _texture)
+
 class MultiprocessingDispatcherProcess(multiprocessing.Process):
     """This class represents a single worker process. It is created
     automatically by MultiprocessingDispatcher, but it can even be
     used manually to spawn processes on different machines on the same
     network.
     """
-    def __init__(self, manager):
+    def __init__(self, manager:MultiprocessingDispatcherManager):
         """Creates the process object. manager should be an instance
         of MultiprocessingDispatcherManager connected to the one
         created in MultiprocessingDispatcher.
@@ -276,7 +336,7 @@ class MultiprocessingDispatcher(Dispatcher):
     """A subclass of Dispatcher that spawns worker processes and
     distributes jobs to them to speed up processing.
     """
-    def __init__(self, local_procs=-1, address=None, authkey=None):
+    def __init__(self, local_procs=-1,  texturePath= "", address=None, authkey=None):
         """Creates the dispatcher. local_procs should be the number of
         worker processes to spawn. If it's omitted (or negative)
         the number of available CPUs is used instead.
@@ -293,15 +353,26 @@ class MultiprocessingDispatcher(Dispatcher):
         self.manager = MultiprocessingDispatcherManager(address=address, authkey=authkey)
         self.manager.start()
         self.job_queue = self.manager.get_job_queue()
+        self.block_render_queue = self.manager.get_block_render_queue()
         self.result_queue = self.manager.get_result_queue()
         self.signal_queue = self.manager.get_signal_queue()
 
-        # create and fill the pool
-        self.pool = []
+        # create and fill the block render pool
+        self.blockRenderPool = []
+        self.renderContexts = [1] # create one process per available render context, todo:impliment multiple contexts
+        # to allow multi GPU and  GPU & CPU rendering
+        for i in self.renderContexts:
+            proc = MultiprocessingBlockRendererProcess(self.manager,texturePath)
+            proc.start()
+            self.blockRenderPool.append(proc)
+
+
+        # create and fill the worldRenderpool
+        self.worldRenderPool = []
         for i in range(self.local_procs):
             proc = MultiprocessingDispatcherProcess(self.manager)
             proc.start()
-            self.pool.append(proc)
+            self.worldRenderPool.append(proc)
 
     def close(self):
         # empty the queue
@@ -313,13 +384,17 @@ class MultiprocessingDispatcher(Dispatcher):
         for p in range(self.num_workers):
             self.job_queue.put(None, False)
 
+
+        for p in self.renderContexts:
+            self.block_render_queue.put(None, False)
         # TODO better way to be sure worker processes get the message
         time.sleep(1)
 
         # and close the manager
         self.manager.shutdown()
         self.manager = None
-        self.pool = None
+        self.worldRenderPool = None
+        self.blockRenderPool = None
 
     def setup_tilesets(self, tilesets):
         self.manager.set_tilesets(tilesets)
