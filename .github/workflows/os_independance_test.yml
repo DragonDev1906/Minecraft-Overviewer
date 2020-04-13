@@ -33,6 +33,7 @@ jobs:
         wget https://raw.githubusercontent.com/python-pillow/Pillow/master/src/libImaging/Imaging.h
         wget https://raw.githubusercontent.com/python-pillow/Pillow/master/src/libImaging/ImPlatform.h
         wget https://raw.githubusercontent.com/python-pillow/Pillow/master/src/libImaging/ImagingUtils.h
+        git clone https://github.com/DragonDev1906/minecraft-debug-world
     - name: Set up EGL
       run: |
         sudo apt-get install xvfb libgles2-mesa-dev
