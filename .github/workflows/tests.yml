@@ -27,6 +27,7 @@ jobs:
         pip install pytest
         wget https://raw.githubusercontent.com/python-pillow/Pillow/master/src/libImaging/Imaging.h
         wget https://raw.githubusercontent.com/python-pillow/Pillow/master/src/libImaging/ImPlatform.h
+        wget https://raw.githubusercontent.com/python-pillow/Pillow/master/src/libImaging/ImagingUtils.h
     - name: Set up EGL
       run: |
         sudo apt install xvfb libgles2-mesa-dev
