@@ -44,7 +44,7 @@ jobs:
     - name: Render
       run: |
         mkdir -p /tmp/fictional/outputdir
-        python overviewer.py -c test/data/settings/settings_test_1.py
+        python overviewer.py -c test/data/settings/os_independance_test.py
     - name: Collect artifacts
       uses: actions/upload-artifact@v1.0.0
       with: 
