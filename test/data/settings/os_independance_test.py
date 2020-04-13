@@ -1,8 +1,8 @@
-worlds['test'] = "test/data/worlds/exmaple"
+worlds['debug'] = "minecraft-debug-world"
 
 renders["myworld"] = { 
     "title": "myworld title",
-    "world": "test",
+    "world": "debug",
     "rendermode": normal,
     "northdirection": "upper-left",
 }
