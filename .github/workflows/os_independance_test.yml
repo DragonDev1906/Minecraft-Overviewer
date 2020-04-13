@@ -23,7 +23,7 @@ jobs:
     - name: Get the debug world
       uses: actions/checkout@v2.1.0
       with: 
-        repository: DragonDev1906.minecraft-debug-world
+        repository: DragonDev1906/minecraft-debug-world
     - name: Set up Python 3.8
       uses: actions/setup-python@v1
       with:
