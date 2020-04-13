@@ -20,6 +20,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: snickerbockers/submodules-init@v4
+    - name: Get the debug world
+      uses: actions/checkout@v2.1.0
+      with: 
+        repository: DragonDev1906.minecraft-debug-world
     - name: Set up Python 3.8
       uses: actions/setup-python@v1
       with:
@@ -33,7 +37,6 @@ jobs:
         wget https://raw.githubusercontent.com/python-pillow/Pillow/master/src/libImaging/Imaging.h
         wget https://raw.githubusercontent.com/python-pillow/Pillow/master/src/libImaging/ImPlatform.h
         wget https://raw.githubusercontent.com/python-pillow/Pillow/master/src/libImaging/ImagingUtils.h
-        git clone https://github.com/DragonDev1906/minecraft-debug-world
     - name: Set up EGL
       run: |
         sudo apt-get install xvfb libgles2-mesa-dev
