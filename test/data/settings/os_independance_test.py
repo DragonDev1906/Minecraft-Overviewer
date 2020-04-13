@@ -1,4 +1,4 @@
-worlds['test'] = "test/data/worlds/example"
+worlds['test'] = "test/data/worlds/exmaple"
 
 renders["myworld"] = { 
     "title": "myworld title",
