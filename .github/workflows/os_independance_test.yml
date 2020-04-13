@@ -38,9 +38,12 @@ jobs:
     - name: setup.py build
       run: |
         python setup.py build
-        python overviewer.py -c test/data/settings/settings_test_1.py
       env:
         DISPLAY: :99.0
+    - name: Render
+      run: |
+        mkdir -p /tmp/fictional/outputdir
+        python overviewer.py -c test/data/settings/settings_test_1.py
     - name: Collect artifacts
       uses: actions/upload-artifact@v1.0.0
       with: 
