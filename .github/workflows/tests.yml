@@ -22,7 +22,7 @@ jobs:
         python-version: 3.8
     - name: Set up EGL
       run: |
-        apt install xvfb libgles2-mesa-dev
+        sudo apt install xvfb libgles2-mesa-dev
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
