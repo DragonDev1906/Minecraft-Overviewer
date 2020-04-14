@@ -61,6 +61,8 @@ jobs:
         DISPLAY: :99.0
     - name: Render
       run: |
+        ls /usr/lib
+        ls /usr/lib/x86_64-linux-gnu
         mkdir -p /tmp/fictional/outputdir
         python overviewer.py -c test/data/settings/os_independance_test.py
     - name: Collect artifacts
