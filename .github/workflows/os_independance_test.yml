@@ -28,7 +28,7 @@ jobs:
     - name: Get the jar file
       uses: actions/checkout@v2.1.0
       with: 
-        repository: https://github.com/DragonDev1906/minecraft-encrypted-jar
+        repository: DragonDev1906/minecraft-encrypted-jar
         path: minecraft-encryted-jar
     - name: Decrypt the jar file
       run: |
