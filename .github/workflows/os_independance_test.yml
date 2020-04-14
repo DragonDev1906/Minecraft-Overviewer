@@ -29,10 +29,10 @@ jobs:
       uses: actions/checkout@v2.1.0
       with: 
         repository: DragonDev1906/minecraft-encrypted-jar
-        path: minecraft-encryted-jar
+        path: minecraft-encrypted-jar
     - name: Decrypt the jar file
       run: |
-        echo 'ls -ahl minecraft-encryted-jar ; gpg --quiet --batch --yes --decrypt --passphrase="$LARGE_SECRET_PASSPHRASE" --output 1.15.2.jar /home/runner/work/Minecraft-Overviewer/Minecraft-Overviewer/minecraft-encrypted-jar/1.15.2.jar.gpg' > decrypt.sh
+        echo 'gpg --quiet --batch --yes --decrypt --passphrase="$LARGE_SECRET_PASSPHRASE" --output 1.15.2.jar /home/runner/work/Minecraft-Overviewer/Minecraft-Overviewer/minecraft-encrypted-jar/1.15.2.jar.gpg' > decrypt.sh
         chmod +x decrypt.sh
         ./decrypt.sh
         rm decrypt.sh
