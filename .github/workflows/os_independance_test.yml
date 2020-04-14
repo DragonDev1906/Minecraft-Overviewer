@@ -34,7 +34,7 @@ jobs:
       run: |
         echo 'gpg --quiet --batch --yes --decrypt --passphrase="$LARGE_SECRET_PASSPHRASE" --output 1.15.2.jar minecraft-encrypted-jar/1.15.2.jar.gpg' > decrypt.sh
         chmod +x decrypt.sh
-        decrypt.sh
+        ./decrypt.sh
         rm decrypt.sh
       env: 
         LARGE_SECRET_PASSPHRASE: ${{ secrets.JAR_ENC_KEY_1_15_2 }}
