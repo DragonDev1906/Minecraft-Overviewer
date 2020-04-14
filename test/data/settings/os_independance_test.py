@@ -8,3 +8,4 @@ renders["myworld"] = {
 }
 
 outputdir = "/tmp/fictional/outputdir"
+texturepath = "1.15.2.jar"
