@@ -25,6 +25,19 @@ jobs:
       with: 
         repository: DragonDev1906/minecraft-debug-world
         path: minecraft-debug-world
+    - name: Get the jar file
+      uses: actions/checkout@v2.1.0
+      with: 
+        repository: https://github.com/DragonDev1906/minecraft-encrypted-jar
+        path: minecraft-encryted-jar
+    - name: Decrypt the jar file
+      run: |
+        echo 'gpg --quiet --batch --yes --decrypt --passphrase="$LARGE_SECRET_PASSPHRASE" --output 1.15.2.jar minecraft-encrypted-jar/1.15.2.jar.gpg' > decrypt.sh
+        chmod +x decrypt.sh
+        decrypt.sh
+        rm decrypt.sh
+      env: 
+        LARGE_SECRET_PASSPHRASE: ${{ secrets.JAR_ENC_KEY_1_15_2 }}
     - name: Set up Python 3.8
       uses: actions/setup-python@v1
       with:
