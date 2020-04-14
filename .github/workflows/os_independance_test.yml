@@ -32,7 +32,7 @@ jobs:
         path: minecraft-encryted-jar
     - name: Decrypt the jar file
       run: |
-        echo 'ls -ahl minecraft-encrypted-jar ; gpg --quiet --batch --yes --decrypt --passphrase="$LARGE_SECRET_PASSPHRASE" --output 1.15.2.jar /home/runner/work/Minecraft-Overviewer/Minecraft-Overviewer/minecraft-encrypted-jar/1.15.2.jar.gpg' > decrypt.sh
+        echo 'ls -ahl minecraft-encryted-jar ; gpg --quiet --batch --yes --decrypt --passphrase="$LARGE_SECRET_PASSPHRASE" --output 1.15.2.jar /home/runner/work/Minecraft-Overviewer/Minecraft-Overviewer/minecraft-encrypted-jar/1.15.2.jar.gpg' > decrypt.sh
         chmod +x decrypt.sh
         ./decrypt.sh
         rm decrypt.sh
