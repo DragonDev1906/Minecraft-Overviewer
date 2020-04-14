@@ -54,6 +54,7 @@ jobs:
     - name: Set up EGL
       run: |
         sudo apt-get install xvfb libgles2-mesa-dev
+        Xvfb :99 -screen 0 640x480x24 &
     - name: setup.py build
       run: |
         python setup.py build
@@ -65,6 +66,8 @@ jobs:
         ls /usr/lib/x86_64-linux-gnu
         mkdir -p /tmp/fictional/outputdir
         python overviewer.py -c test/data/settings/os_independance_test.py
+      env:
+        DISPLAY: :99.0
     - name: Collect artifacts
       uses: actions/upload-artifact@v1.0.0
       with: 
